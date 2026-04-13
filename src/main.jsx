@@ -18,6 +18,19 @@ const QUESTIONS = [
   { id: 10, category: "Honest Check", question: "If a close friend asked you right now — 'Are you okay?' — what would you say honestly?", options: [{ value: 4, label: "Yes. I really am." }, { value: 3, label: "Mostly. Some things I'm working through." }, { value: 2, label: "Not really. But I keep moving." }, { value: 1, label: "No. And I need something to change." }] },
 ];
 
+const FOLLOW_UPS = {
+  1: { question: "What specifically weighs on you?", options: ["A particular class or student situation", "Admin tasks or paperwork I didn't finish", "A coworker or leadership issue", "Just the weight of all of it combined"] },
+  2: { question: "When did you last feel that original spark?", options: ["Within the last month", "Sometime this school year", "It's been over a year", "I honestly can't remember"] },
+  3: { question: "What follows you home most often?", options: ["Grading and planning I couldn't finish", "Worry about specific students", "Replaying difficult interactions", "A general anxiety I can't name"] },
+  4: { question: "Where do you feel the lack of recognition most?", options: ["From admin or leadership", "From parents", "From the system itself", "Even from students lately"] },
+  5: { question: "What's blocking your growth right now?", options: ["No time - I'm in survival mode", "No energy - I'm running on empty", "No support - PD feels pointless", "No motivation - I've stopped caring"] },
+  6: { question: "What's driving the disconnect?", options: ["Behavior issues I can't get ahead of", "Too many students, not enough time", "I'm emotionally protecting myself", "I've lost patience I used to have"] },
+  7: { question: "What's taking your control away?", options: ["Scripted curriculum I have to follow", "Constant observations or evaluations", "Decisions made without teacher input", "All of the above"] },
+  8: { question: "How is it showing up physically?", options: ["Sleep problems - can't fall or stay asleep", "Getting sick more often than normal", "Stress eating or not eating enough", "Headaches, tension, or body pain"] },
+  9: { question: "What would need to change for you to stay?", options: ["Better admin or leadership support", "Less workload or more planning time", "Higher pay that reflects my work", "Honestly, I'm not sure anything would"] },
+  10: { question: "What's the hardest part to say out loud?", options: ["I'm angry more than I should be", "I cry about work more than I admit", "I've thought about quitting without a plan", "I don't recognize who I've become"] },
+};
+
 const getScoreCategory = (score) => {
   if (score >= 35) return { label: "Thriving", emoji: "🔥", color: "#2a9d5c" };
   if (score >= 27) return { label: "Stable But Watching", emoji: "⚡", color: GOLD };
@@ -27,29 +40,64 @@ const getScoreCategory = (score) => {
 
 function App() {
   const [answers, setAnswers] = useState({});
+  const [followUps, setFollowUps] = useState({});
+  const [showFollowUp, setShowFollowUp] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(false);
   const [aiResult, setAiResult] = useState(null);
   const [error, setError] = useState("");
 
-  const answer = (qId, value) => setAnswers(prev => ({ ...prev, [qId]: value }));
+  const answer = (qId, value) => {
+    setAnswers(prev => ({ ...prev, [qId]: value }));
+    if (value <= 2 && FOLLOW_UPS[qId]) {
+      setShowFollowUp(true);
+    } else {
+      setShowFollowUp(false);
+    }
+  };
+
+  const answerFollowUp = (qId, value) => {
+    setFollowUps(prev => ({ ...prev, [qId]: value }));
+  };
+
   const score = Object.values(answers).reduce((a, b) => a + b, 0);
   const answered = Object.keys(answers).length;
   const category = getScoreCategory(score);
   const progress = (answered / QUESTIONS.length) * 100;
   const allAnswered = answered === QUESTIONS.length;
   const q = QUESTIONS[current];
+  const currentFollowUp = FOLLOW_UPS[q.id];
+  const needsFollowUp = answers[q.id] <= 2 && currentFollowUp;
+  const followUpAnswered = followUps[q.id];
+
+  const canProceed = answers[q.id] && (!needsFollowUp || followUpAnswered);
+
+  const handleNext = () => {
+    setShowFollowUp(false);
+    setCurrent(c => c + 1);
+  };
+
+  const handleBack = () => {
+    setShowFollowUp(false);
+    setCurrent(c => c - 1);
+  };
 
   const buildPrompt = () => {
     const answerDetails = QUESTIONS.map(q => {
       const selectedValue = answers[q.id];
       const selectedOption = q.options.find(o => o.value === selectedValue);
-      return `${q.category} (${selectedValue}/4): "${selectedOption?.label}"`;
+      let detail = `${q.category} (${selectedValue}/4): "${selectedOption?.label}"`;
+      if (followUps[q.id]) {
+        detail += `\n   → Follow-up: "${followUps[q.id]}"`;
+      }
+      return detail;
     }).join("\n");
 
     const lowest = QUESTIONS.reduce((min, q) => answers[q.id] < answers[min.id] ? q : min, QUESTIONS[0]);
     const highest = QUESTIONS.reduce((max, q) => answers[q.id] > answers[max.id] ? q : max, QUESTIONS[0]);
+    
+    const followUpCount = Object.keys(followUps).length;
 
     return `You are an expert educator coach who has worked with hundreds of burned-out teachers. A teacher just completed a burnout audit. Your job is to make them feel SEEN - not give generic advice.
 
@@ -59,12 +107,14 @@ ${answerDetails}
 TOTAL SCORE: ${score}/40
 LOWEST AREA: ${lowest.category} (${answers[lowest.id]}/4)
 HIGHEST AREA: ${highest.category} (${answers[highest.id]}/4)
+FOLLOW-UP QUESTIONS TRIGGERED: ${followUpCount} (the more follow-ups, the more areas scoring 1-2)
 
 CRITICAL FORMATTING RULES:
 - Use PLAIN TEXT only. No markdown, no asterisks, no hashtags, no bullet symbols.
 - Write in second person ("you") - speak directly to them.
 - Be warm but honest. Don't sugarcoat, but don't be harsh.
-- Reference their SPECIFIC answers - quote their exact words back to them.
+- Reference their SPECIFIC answers AND their follow-up answers - quote their exact words back to them.
+- When they gave a follow-up answer, USE IT. It tells you the deeper story.
 - Total response must be under 500 words.
 
 WRITE EXACTLY THIS STRUCTURE:
@@ -73,18 +123,18 @@ HEADLINE:
 [One punchy sentence that captures their situation - make it land]
 
 THE PATTERN I SEE:
-[2-3 sentences identifying what their specific combination of answers reveals. Name something they didn't say out loud but their answers imply. Reference the gap between their highest and lowest scores. This is where they should feel "this tool gets me."]
+[2-3 sentences identifying what their specific combination of answers reveals. Name something they didn't say out loud but their answers imply. Reference the gap between their highest and lowest scores. If they answered follow-ups, weave those details in - they reveal the specifics behind the score. This is where they should feel "this tool gets me."]
 
 WHAT'S ACTUALLY HAPPENING:
-[2-3 sentences explaining the deeper dynamic at play. Connect their ${lowest.category} score to real consequences. Be specific, not generic.]
+[2-3 sentences explaining the deeper dynamic at play. Connect their ${lowest.category} score to real consequences. If they told you specifics in the follow-ups (like what's taking their control away, or what follows them home), reference those exact things.]
 
 THE ONE THING:
-[One specific, actionable thing they should do THIS WEEK based on their lowest scoring area. Not "set boundaries" - something concrete like "Pick one night this week where you do not open your laptop after 7pm. Put your phone in another room. See what happens."]
+[One specific, actionable thing they should do THIS WEEK based on their lowest scoring area AND their follow-up answer if they gave one. Not "set boundaries" - something concrete that addresses what they specifically said. If they said "admin tasks" follow them home, the action should address admin tasks specifically.]
 
 THE REAL TALK:
 [1-2 sentences that are slightly uncomfortable but true. The thing a good friend would say. End with something that acknowledges their strength for even taking this audit.]
 
-Remember: Generic advice like "practice self-care" or "set boundaries" will be ignored. Reference their actual answers. Make them feel like you read their specific situation, not a score range.`;
+Remember: Generic advice like "practice self-care" or "set boundaries" will be ignored. Reference their actual answers AND their follow-up details. The follow-ups tell you the REAL story - use them.`;
   };
 
   const handleSubmit = async () => {
@@ -154,6 +204,8 @@ Remember: Generic advice like "practice self-care" or "set boundaries" will be i
                 <div style={{ height: "100%", width: `${progress}%`, background: GOLD, borderRadius: 2, transition: "width 0.4s ease" }} />
               </div>
             </div>
+
+            {/* MAIN QUESTION */}
             <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: "28px 22px", marginBottom: 16 }}>
               <div style={{ color: GOLD, fontWeight: 700, fontSize: 10, letterSpacing: 3, textTransform: "uppercase", marginBottom: 14 }}>Category: {q.category}</div>
               <div style={{ fontSize: "clamp(15px, 4vw, 18px)", fontWeight: 600, color: "#fff", lineHeight: 1.5, marginBottom: 24 }}>{q.question}</div>
@@ -164,15 +216,30 @@ Remember: Generic advice like "practice self-care" or "set boundaries" will be i
                 })}
               </div>
             </div>
+
+            {/* FOLLOW-UP QUESTION */}
+            {needsFollowUp && (
+              <div style={{ background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.25)", borderRadius: 16, padding: "24px 22px", marginBottom: 16 }}>
+                <div style={{ color: GOLD, fontWeight: 700, fontSize: 10, letterSpacing: 3, textTransform: "uppercase", marginBottom: 6 }}>↳ Tell me more</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: "#fff", lineHeight: 1.5, marginBottom: 18 }}>{currentFollowUp.question}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {currentFollowUp.options.map((opt, i) => {
+                    const selected = followUps[q.id] === opt;
+                    return <button key={i} onClick={() => answerFollowUp(q.id, opt)} style={{ padding: "12px 16px", borderRadius: 8, cursor: "pointer", textAlign: "left", border: `1px solid ${selected ? GOLD : "rgba(255,255,255,0.12)"}`, background: selected ? "rgba(201,168,76,0.2)" : "rgba(255,255,255,0.03)", color: selected ? GOLD : "rgba(255,255,255,0.65)", fontSize: 13, fontWeight: selected ? 700 : 400, lineHeight: 1.5, transition: "all 0.15s" }}>{selected && <span style={{ marginRight: 8 }}>✓</span>}{opt}</button>;
+                  })}
+                </div>
+              </div>
+            )}
+
             <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
-              {current > 0 && <button onClick={() => setCurrent(c => c - 1)} style={{ flex: 1, padding: 14, background: "transparent", color: "rgba(255,255,255,0.4)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer", textTransform: "uppercase", letterSpacing: 1 }}>← Back</button>}
+              {current > 0 && <button onClick={handleBack} style={{ flex: 1, padding: 14, background: "transparent", color: "rgba(255,255,255,0.4)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer", textTransform: "uppercase", letterSpacing: 1 }}>← Back</button>}
               {current < QUESTIONS.length - 1
-                ? <button onClick={() => setCurrent(c => c + 1)} disabled={!answers[q.id]} style={{ flex: 2, padding: 14, background: answers[q.id] ? GOLD : "rgba(201,168,76,0.2)", color: answers[q.id] ? DARK : "rgba(255,255,255,0.2)", border: "none", borderRadius: 10, fontWeight: 900, fontSize: 14, cursor: answers[q.id] ? "pointer" : "not-allowed", textTransform: "uppercase", letterSpacing: 2 }}>Next →</button>
-                : <button onClick={handleSubmit} disabled={!allAnswered} style={{ flex: 2, padding: 14, background: allAnswered ? GOLD : "rgba(201,168,76,0.2)", color: allAnswered ? DARK : "rgba(255,255,255,0.2)", border: "none", borderRadius: 10, fontWeight: 900, fontSize: 14, cursor: allAnswered ? "pointer" : "not-allowed", textTransform: "uppercase", letterSpacing: 2 }}>{allAnswered ? "See My Results →" : "Answer All Questions First"}</button>
+                ? <button onClick={handleNext} disabled={!canProceed} style={{ flex: 2, padding: 14, background: canProceed ? GOLD : "rgba(201,168,76,0.2)", color: canProceed ? DARK : "rgba(255,255,255,0.2)", border: "none", borderRadius: 10, fontWeight: 900, fontSize: 14, cursor: canProceed ? "pointer" : "not-allowed", textTransform: "uppercase", letterSpacing: 2 }}>Next →</button>
+                : <button onClick={handleSubmit} disabled={!canProceed} style={{ flex: 2, padding: 14, background: canProceed ? GOLD : "rgba(201,168,76,0.2)", color: canProceed ? DARK : "rgba(255,255,255,0.2)", border: "none", borderRadius: 10, fontWeight: 900, fontSize: 14, cursor: canProceed ? "pointer" : "not-allowed", textTransform: "uppercase", letterSpacing: 2 }}>{canProceed ? "See My Results →" : "Answer All Questions First"}</button>
               }
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
-              {QUESTIONS.map((q, i) => <button key={i} onClick={() => setCurrent(i)} style={{ width: 28, height: 28, borderRadius: "50%", border: "none", cursor: "pointer", background: answers[q.id] ? GOLD : current === i ? "rgba(201,168,76,0.3)" : "rgba(255,255,255,0.1)", color: answers[q.id] ? DARK : "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700 }}>{i + 1}</button>)}
+              {QUESTIONS.map((qu, i) => <button key={i} onClick={() => { setShowFollowUp(false); setCurrent(i); }} style={{ width: 28, height: 28, borderRadius: "50%", border: "none", cursor: "pointer", background: answers[qu.id] ? GOLD : current === i ? "rgba(201,168,76,0.3)" : "rgba(255,255,255,0.1)", color: answers[qu.id] ? DARK : "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 700 }}>{i + 1}</button>)}
             </div>
           </>
         ) : (
@@ -251,7 +318,7 @@ Remember: Generic advice like "practice self-care" or "set boundaries" will be i
               <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>I work with educators one-on-one and run workshops for school teams. If this audit lit something up — that's worth a conversation.</div>
               <a href="mailto:brandon@4thdmc.com" style={{ display: "inline-block", background: GOLD, color: DARK, fontWeight: 900, fontSize: 11, letterSpacing: 3, textTransform: "uppercase", padding: "14px 28px", borderRadius: 4, textDecoration: "none" }}>Get in Touch →</a>
             </div>
-            <button onClick={() => { setAnswers({}); setSubmitted(false); setCurrent(0); setAiResult(null); setError(""); }} style={{ width: "100%", padding: 14, background: "transparent", color: "rgba(255,255,255,0.35)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, fontWeight: 700, fontSize: 12, cursor: "pointer", textTransform: "uppercase", letterSpacing: 1 }}>← Retake the Audit</button>
+            <button onClick={() => { setAnswers({}); setFollowUps({}); setSubmitted(false); setCurrent(0); setAiResult(null); setError(""); }} style={{ width: "100%", padding: 14, background: "transparent", color: "rgba(255,255,255,0.35)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, fontWeight: 700, fontSize: 12, cursor: "pointer", textTransform: "uppercase", letterSpacing: 1 }}>← Retake the Audit</button>
           </div>
         )}
       </div>
