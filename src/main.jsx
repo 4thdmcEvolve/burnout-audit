@@ -162,23 +162,14 @@ THE REAL TALK:
 
   const result = parseResult(aiResult);
 
-  // ── NAV LOGO ──
-  const NavLogo = () => (
-    <a href="https://4thdmc.com" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
-      <img
-        src="/4thdmc_logo.png"
-        alt="4THDMC | EVOLVE LLC"
-        style={{ height: 52, width: 52, objectFit: "contain" }}
-      />
-    </a>
-  );
-
   return (
     <div style={{ minHeight: "100vh", background: `linear-gradient(160deg, ${DARK} 0%, ${NAVY} 100%)`, fontFamily: "'Segoe UI', system-ui, sans-serif", padding: "0 0 80px" }}>
 
       {/* NAV */}
       <div style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "10px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <NavLogo />
+        <div style={{ fontWeight: 900, fontSize: 16, color: "#fff", letterSpacing: 1 }}>
+          4THDMC <span style={{ color: GOLD }}>|</span> EVOLVE LLC
+        </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, letterSpacing: 2, textTransform: "uppercase" }}>Teacher Toolkit</div>
           <a
@@ -198,7 +189,7 @@ THE REAL TALK:
             {/* HEADER */}
             <div style={{ marginBottom: 32, textAlign: "center" }}>
               <div style={{ display: "inline-block", border: `1px solid ${GOLD}`, color: GOLD, fontSize: 10, letterSpacing: 4, padding: "4px 16px", marginBottom: 16, fontWeight: 700, borderRadius: 2, textTransform: "uppercase" }}>
-                Free Tool · No Sign-Up Required
+                Always Included · Available to Every Teacher
               </div>
               <div style={{ fontSize: "clamp(30px, 7vw, 48px)", fontWeight: 900, color: "#fff", lineHeight: 1.05, marginBottom: 10 }}>
                 TEACHER BURNOUT<br /><span style={{ color: GOLD }}>AUDIT</span>
@@ -306,9 +297,6 @@ THE REAL TALK:
           <div>
             {/* RESULT HEADER */}
             <div style={{ marginBottom: 24, textAlign: "center" }}>
-              <a href="https://4thdmc.com" target="_blank" rel="noopener noreferrer">
-                <img src="/4thdmc_logo.png" alt="4THDMC | EVOLVE LLC" style={{ height: 72, width: 72, objectFit: "contain", marginBottom: 16 }} />
-              </a>
               <div style={{ fontSize: 52, marginBottom: 12 }}>{category.emoji}</div>
               <div style={{ display: "inline-block", border: `1px solid ${category.color}`, color: category.color, fontSize: 10, letterSpacing: 4, padding: "4px 16px", marginBottom: 12, fontWeight: 700, borderRadius: 2, textTransform: "uppercase" }}>Your Result</div>
               <div style={{ fontSize: "clamp(28px, 7vw, 42px)", fontWeight: 900, color: "#fff", lineHeight: 1.1, marginBottom: 6 }}>{category.label}</div>
@@ -382,9 +370,9 @@ THE REAL TALK:
             {/* CTA BLOCK */}
             {aiResult && !loading && (
               <div style={{ background: `linear-gradient(135deg, rgba(27,58,107,0.6), rgba(13,27,42,0.8))`, border: `1px solid rgba(201,168,76,0.3)`, borderRadius: 16, padding: "32px 24px", marginBottom: 16, textAlign: "center" }}>
-                <a href="https://4thdmc.com" target="_blank" rel="noopener noreferrer">
-                  <img src="/4thdmc_logo.png" alt="4THDMC | EVOLVE LLC" style={{ height: 60, width: 60, objectFit: "contain", marginBottom: 16 }} />
-                </a>
+                <div style={{ fontWeight: 900, fontSize: 18, color: "#fff", letterSpacing: 2, marginBottom: 16 }}>
+                  4THDMC <span style={{ color: GOLD }}>|</span> EVOLVE LLC
+                </div>
                 <div style={{ color: GOLD, fontWeight: 800, fontSize: 13, letterSpacing: 3, textTransform: "uppercase", marginBottom: 10 }}>
                   This is just the beginning
                 </div>
