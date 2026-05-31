@@ -173,7 +173,7 @@ THE REAL TALK:
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, letterSpacing: 2, textTransform: "uppercase" }}>Teacher Toolkit</div>
           <a
-            href="https://brrteaching.com/subscribe/"
+            href="https://brrteachingsubscribe.lovable.app"
             target="_blank"
             rel="noopener noreferrer"
             style={{ background: GOLD, color: DARK, fontWeight: 900, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", padding: "8px 16px", borderRadius: 4, textDecoration: "none", whiteSpace: "nowrap" }}
@@ -381,7 +381,7 @@ THE REAL TALK:
                 </div>
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
                   <a
-                    href="https://brrteaching.com/subscribe/"
+                    href="https://brrteachingsubscribe.lovable.app"
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ background: GOLD, color: DARK, fontWeight: 900, fontSize: 13, letterSpacing: 2, textTransform: "uppercase", padding: "16px 28px", borderRadius: 6, textDecoration: "none", display: "inline-block", boxShadow: "0 4px 20px rgba(201,168,76,0.35)" }}
